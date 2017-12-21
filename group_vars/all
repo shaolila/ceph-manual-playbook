@@ -1,0 +1,4 @@
+clustername: ceph
+log_file: /tmp/auto_install.log
+ipaddress: 172.16.134.41
+fsid: a7f64266-0894-4f1e-a635-d0aeaca0e993

@@ -1,0 +1,11 @@
+[primarymon]
+ceph1
+
+[monitors]
+ceph2
+
+[osds]
+ceph1
+ceph2
+
+

@@ -1,0 +1,4 @@
+---
+# The variables file used by the playbooks in the monitors group.
+hostname: ceph1
+ipaddress: 172.16.134.41

@@ -1,0 +1,6 @@
+hostname: ceph1
+ipaddress: 172.16.134.41
+fs_type: xfs
+disk_path: /dev/vdb
+data_path: /dev/vdb1
+journal_path: 

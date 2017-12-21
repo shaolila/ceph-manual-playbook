@@ -1,0 +1,81 @@
+---
+# This playbook contains common plays that will be run on all nodes.
+
+- name: Install libselinux
+  yum: name=libselinux-python state=present
+  tags: libselinux
+
+- name: find /etc/yum.repos.d/*.repo
+  find:
+     paths: /etc/yum.repos.d
+     patterns: "*.repo"
+  register: find_res
+  
+- name: Move file to /tmp/
+  command: mv {{ item['path'] }} /tmp/
+  with_items: "{{ find_res['files'] }}"
+    
+- name: Configure yum repos
+  template: src=mitaka.repo dest=/etc/yum.repos.d/mitaka.repo
+  tags: mitakaCentOS74ppc64le
+
+- shell: yum clean all
+
+- name: Install ceph
+  yum: name=ceph state=present
+  tags: ceph
+
+- name: Configure ceph.conf for ceph cluster
+  template: src=ceph.conf.j2 dest=/etc/ceph/ceph.conf
+  tags: ceph-conf
+
+#- name: test to see if firewalld is stopped
+#  service: name=firewalld state=stopped enabled=no
+#  tags: firewalld
+
+- name: test to see if selinux is running
+  command: getenforce
+  register: sestatus
+  changed_when: false
+
+- name: Configure ceph-create-keys service for hammer
+  template: src=ceph-create-keys@.service.j2 dest=/usr/lib/systemd/system/ceph-create-keys@.service
+  tags: ceph-create-keys@.service
+  
+- name: Configure ceph-mon service for hammer
+  template: src=ceph-mon@.service.j2 dest=/usr/lib/systemd/system/ceph-mon@.service
+  tags: ceph-mon-service
+  
+- name: Configure ceph-mon target for hammer
+  template: src=ceph-mon.target.j2 dest=/usr/lib/systemd/system/ceph-mon.target
+  tags: ceph-mon-target
+  
+- name: Configure ceph-osd service for hammer
+  template: src=ceph-osd@.service.j2 dest=/usr/lib/systemd/system/ceph-osd@.service
+  tags: ceph-osd-service
+  
+- name: Configure ceph-osd target for hammer
+  template: src=ceph-osd.target.j2 dest=/usr/lib/systemd/system/ceph-osd.target
+  tags: ceph-osd-target
+  
+- name: create ceph.target.wants directory if it doesn't exist
+  file:
+    path: /etc/systemd/system/ceph.target.wants
+    state: directory
+    mode: 0755
+- shell: echo "create directory for ceph.target.wants" >> {{ log_file }}
+  
+- name: create ceph-osd.target.wants directory if it doesn't exist
+  file:
+    path: /etc/systemd/system/ceph-osd.target.wants
+    state: directory
+    mode: 0755
+- shell: echo "create directory for ceph-osd.target.wants" >> {{ log_file }}
+  
+- name: Configure ceph-osd.target for hammer
+  template: src=ceph-osd.target.j2 dest=/etc/systemd/system/ceph.target.wants/ceph-osd.target
+  tags: ceph-osd-target-wants
+
+- name: Configure ceph-osd.target for hammer
+  template: src=ceph-mon.target.j2 dest=/etc/systemd/system/ceph.target.wants/ceph-mon.target
+  tags: ceph-mon-target-wants

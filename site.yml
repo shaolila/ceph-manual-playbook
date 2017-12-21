@@ -1,0 +1,30 @@
+---
+# This playbook deploys the whole application stack in this site.
+
+- name: apply common configuration to all nodes
+  hosts: all
+  remote_user: root
+
+  roles:
+    - common
+
+- name: configure and deploy the other monitors
+  hosts: primarymon
+  remote_user: root
+
+  roles:
+    - primarymon
+        
+#- name: configure and deploy the primary monitor
+#  hosts: monitors
+#  remote_user: root
+#
+#  roles:
+#    - monitors
+
+- name: configure and deploy the osds
+  hosts: osds
+  remote_user: root
+
+  roles:
+    - osds

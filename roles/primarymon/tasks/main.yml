@@ -1,0 +1,72 @@
+---
+# These tasks create monitors.
+
+- shell: ceph-authtool --create-keyring /tmp/ceph.mon.keyring --gen-key -n mon. --cap mon 'allow *'
+- shell: echo "create mon keyring" >> {{ log_file }}
+
+- shell: ceph-authtool --create-keyring /etc/ceph/ceph.client.admin.keyring --gen-key -n client.admin --set-uid=0 --cap mon 'allow *' --cap osd 'allow *' --cap mds 'allow *' --cap mgr 'allow *'
+- shell: echo "create keyring for ceph.client.admin.keyring" >> {{ log_file }}
+
+- shell: ceph-authtool --create-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring --gen-key -n client.bootstrap-osd --cap mon 'profile bootstrap-osd'
+- shell: echo "create keyring for bootstrap-osd" >> {{ log_file }}
+
+- shell: ceph-authtool /tmp/ceph.mon.keyring --import-keyring /etc/ceph/ceph.client.admin.keyring
+- shell: echo "import mon keyring for ceph.client.admin.keyring" >> {{ log_file }}
+
+- shell: ceph-authtool /tmp/ceph.mon.keyring --import-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring
+- shell: echo "import mon keyring for ceph.keyring" >> {{ log_file }}
+
+- name: delete a file if it exist
+  file:
+    path: /tmp/monmap
+    state: absent
+    mode: 0755
+- shell: echo "move older monmap to a bak file" >> {{ log_file }}
+
+- shell: monmaptool --create --add {{ hostname }} {{ ipaddress }} --fsid {{fsid}} /tmp/monmap
+- shell: echo "create monmap on node" >> {{ log_file }}
+
+- name: find /var/lib/ceph/mon/{{ clustername }}-{{ hostname }}/*
+  find:
+     paths: /var/lib/ceph/mon/{{ clustername }}-{{ hostname }}
+     patterns: "*"
+  register: find_res
+  
+- name: Move file to /tmp/
+  command: mv {{ item['path'] }} /tmp/
+  with_items: "{{ find_res['files'] }}"
+  
+- name: delete mon directory
+  command: rm -rf /var/lib/ceph/mon/{{ clustername }}-{{ hostname }}
+
+- name: create ceph mon directory if it doesn't exist
+  file:
+    path: /var/lib/ceph/mon/{{ clustername }}-{{ hostname }}
+    state: directory
+    mode: 0755
+- shell: echo "create directory for mon" >> {{ log_file }}
+
+- shell: ceph-mon --mkfs -i {{ hostname }} --monmap /tmp/monmap --keyring /tmp/ceph.mon.keyring
+- shell: echo "create mon node and import mon keyring and mon map " >> {{ log_file }}
+
+- name: delete a file if it exist
+  file:
+    path: /var/lib/ceph/mon/ceph-{{ hostname }}/done
+    state: touch
+    mode: 0755
+- shell: echo "create directory done in directory mon" >> {{ log_file }}
+
+- shell: systemctl enable ceph-mon@{{ hostname }}
+- shell: echo "enable service" >> {{ log_file }}
+
+- shell: systemctl start ceph-mon@{{ hostname }}
+- shell: echo "start service" >> {{ log_file }}
+
+- shell: chmod 644 /etc/ceph/ceph.client.admin.keyring 
+- shell: echo "change mode for file  ceph.client.admin.keyring" >> {{ log_file }}
+
+- shell: ceph auth get mon. -o /root/mon.keyring
+- shell: echo "export mon map" >> {{ log_file }}
+
+- shell: ceph mon getmap -o /root/mon.map
+- shell: echo "export mon ring" >> {{ log_file }}

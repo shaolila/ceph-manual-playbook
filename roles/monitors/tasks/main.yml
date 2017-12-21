@@ -1,0 +1,14 @@
+---
+# This playbook will add monitor to ceph cluster 
+
+- shell: scp root@{{ hostname }}:/root/mon.map /root/mon.keyring /root
+- shell: echo "scp mon map form primary host" >> {{ log_file }}
+
+- shell: scp root@{{ hostname }}:/root/mon.keyring /root/mon.keyring /root
+- shell: echo "scp mon keyring form primary host" >> {{ log_file }}
+
+- shell: ceph-mon --mkfs -i {{ hostname }} --monmap /tmp/monmap --keyring /tmp/ceph.mon.keyring
+- shell: echo "exectue command mkfs" >> {{ log_file }}
+
+- shell: ceph-mon -i {{ hostname }} --public-addr {{ ipaddress }}:6789
+- shell: echo "add public address" >> {{ log_file }}

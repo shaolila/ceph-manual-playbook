@@ -1,0 +1,41 @@
+---
+# This playbook will add osd to ceph cluster
+
+- shell: ceph-disk prepare --cluster {{ clustername }} --fs-type {{ fs_type }} {{ disk_path }} {{ journal_path }}
+- shell: echo "prepare disk for osd daemon by format" >> {{ log_file }}
+
+- shell: ceph osd create
+  register: number
+- shell: echo "create osd number" >> {{ log_file }}
+
+- shell: mkdir /var/lib/ceph/osd/ceph-{{number.stdout}}
+- shell: echo "create osd directory" >> {{ log_file }}
+
+- shell: mount {{ data_path }} /var/lib/ceph/osd/ceph-{{number.stdout}}/
+- shell: echo "mount a data path to osd directory" >> {{ log_file }}
+
+- shell: ceph-osd -i {{number.stdout}} --mkfs --mkkey
+- shell: echo "mkfs mkkey" >> {{ log_file }}
+
+- shell: ceph auth add osd.{{number.stdout}} osd 'allow *' mon 'allow profile osd' -i /var/lib/ceph/osd/ceph-{{number.stdout}}/keyring
+- shell: echo "add authority for new keying" >> {{ log_file }}
+
+- shell: ceph osd crush add-bucket {{ hostname }} host
+- shell: echo "add bucket for crushmap" >> {{ log_file }}
+
+- shell: ceph osd crush move {{ hostname }} root=default
+- shell: echo "add osd to crushmap bucket" >> {{ log_file }}
+
+- shell: ceph osd crush add osd.{{number.stdout}} 1.0 host={{ hostname }}
+- shell: echo "add weight for crushmap " >> {{ log_file }}
+
+- shell: systemctl enable ceph-osd@{{number.stdout}}
+- shell: echo "enable ceph osd service" >> {{ log_file }}
+
+- shell: systemctl start ceph-osd@{{number.stdout}}
+- shell: echo "start ceph osd service" >> {{ log_file }}
+
+- shell: systemctl status ceph-osd@{{number.stdout}}
+- shell: echo "check ceph osd service status" >> {{ log_file }}
+
+
